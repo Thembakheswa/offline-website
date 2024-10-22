@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline Website Example</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 50px;
+            background-color: #f0f0f0;
+            color: #333;
+        }
+
+        h1 {
+            color: #007BFF;
+        }
+
+        input {
+            margin: 10px;
+            padding: 8px;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            color: white;
+            background-color: #007BFF;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .options {
+            display: none; /* Initially hide the options */
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Welcome to My Offline Website</h1>
+    <p>Please enter your Client ID and Password:</p>
+
+    <form id="loginForm">
+        <input type="text" id="clientId" placeholder="Client ID" required>
+        <input type="password" id="password" placeholder="Password" required>
+        <button type="submit">Login</button>
+    </form>
+
+    <div id="message" style="margin-top: 20px;"></div>
+    
+    <div class="options" id="options">
+        <h2>Welcome, Mr. Kheswa!</h2>
+        <p>You are logged in as a SASSA employer.</p>
+        <ul>
+            <li><button onclick="alert('View Employee Records')">View Employee Records</button></li>
+            <li><button onclick="alert('Manage Payments')">Manage Payments</button></li>
+            <li><button onclick="alert('Logout')">Logout</button></li>
+        </ul>
+    </div>
+    
+    <script>
+        // Register service worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('service-worker.js')
+                    .then((registration) => {
+                        console.log('Service Worker registered with scope:', registration.scope);
+                    })
+                    .catch((error) => {
+                        console.error('Service Worker registration failed:', error);
+                    });
+            });
+        }
+
+        // Handle form submission
+        document.getElementById('loginForm').addEventListener('submit', function(event) {
+            event.preventDefault(); // Prevent the form from submitting
+            const clientId = document.getElementById('clientId').value;
+            const password = document.getElementById('password').value;
+
+            // Check credentials
+            if (clientId === '0604076450088' && password === 'Password123') {
+                document.getElementById('message').innerText = 'Login successful!';
+                document.getElementById('options').style.display = 'block'; // Show options
+            } else {
+                document.getElementById('message').innerText = 'Invalid Client ID or Password.';
+            }
+        });
+
+        // Service Worker script (in a data URI for simplicity)
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('data:application/javascript;base64,' + btoa(`
+                const CACHE_NAME = 'offline-cache-v1';
+                const OFFLINE_URL = 'index.html';
+                const CACHE_ASSETS = [
+                    OFFLINE_URL,
+                    'data:text/css,' + encodeURIComponent(\`body {
+                        font-family: Arial, sans-serif;
+                        text-align: center;
+                        margin: 50px;
+                        background-color: #f0f0f0;
+                        color: #333;
+                    }\`),
+                    'data:text/javascript,' + encodeURIComponent(\`// Handle form submission
+                        document.getElementById('loginForm').addEventListener('submit', function(event) {
+                            event.preventDefault(); // Prevent the form from submitting
+                            const clientId = document.getElementById('clientId').value;
+                            const password = document.getElementById('password').value;
+
+                            // Check credentials
+                            if (clientId === '0604076450088' && password === 'Password123') {
+                                document.getElementById('message').innerText = 'Login successful!';
+                                document.getElementById('options').style.display = 'block'; // Show options
+                            } else {
+                                document.getElementById('message').innerText = 'Invalid Client ID or Password.';
+                            }
+                        });\`)
+                ];
+
+                self.addEventListener('install', (event) => {
+                    event.waitUntil(
+                        caches.open(CACHE_NAME).then((cache) => {
+                            return cache.addAll(CACHE_ASSETS);
+                        })
+                    );
+                });
+
+                self.addEventListener('fetch', (event) => {
+                    event.respondWith(
+                        caches.match(event.request).then((response) => {
+                            return response || fetch(event.request).catch(() => {
+                                return caches.match(OFFLINE_URL);
+                            });
+                        })
+                    );
+                });
+            `));
+        }
+    </script>
+</body>
+</html>
